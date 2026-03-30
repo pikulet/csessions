@@ -2,7 +2,7 @@
 # <xbar.title>Claude Code Sessions</xbar.title>
 # <xbar.desc>Shows active and recent Claude Code sessions</xbar.desc>
 # <xbar.author>Joyce</xbar.author>
-# <xbar.version>1.0</xbar.version>
+# <xbar.version>1.1</xbar.version>
 
 CLAUDE_DIR="$HOME/.claude"
 SESSIONS_DIR="$CLAUDE_DIR/sessions"
@@ -82,6 +82,42 @@ print(f'started={d.get(\"startedAt\",0)}')
 else
   echo "No active sessions | color=#999999 size=13"
 fi
+
+echo "---"
+
+# Recent sessions (last 24h, not currently active)
+active_ids=""
+for f in "$SESSIONS_DIR"/*.json; do
+  [ -f "$f" ] || continue
+  active_ids="$active_ids $(python3 -c "import json; print(json.load(open('$f')).get('sessionId',''))" 2>/dev/null)"
+done
+
+recent_header_printed=0
+while IFS= read -r jsonl_file; do
+  fname=$(basename "$jsonl_file" .jsonl)
+  echo "$active_ids" | grep -q "$fname" && continue
+
+  last_prompt=$(grep '"last-prompt"' "$jsonl_file" 2>/dev/null | tail -1 | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('lastPrompt','')[:60])" 2>/dev/null)
+  custom_title=$(grep '"custom-title"' "$jsonl_file" 2>/dev/null | tail -1 | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('customTitle',''))" 2>/dev/null)
+  agent_name=$(grep '"agent-name"' "$jsonl_file" 2>/dev/null | tail -1 | python3 -c "import json,sys; d=json.load(sys.stdin); print(d.get('agentName',''))" 2>/dev/null)
+
+  [ -z "$last_prompt" ] && [ -z "$custom_title" ] && continue
+
+  proj_dir=$(echo "$jsonl_file" | sed "s|$PROJECTS_DIR/||" | cut -d/ -f1 | sed 's/^-//' | tr '-' '/' | sed 's|.*Users/[^/]*/||')
+  mod_time=$(stat -f "%Sm" -t "%H:%M" "$jsonl_file" 2>/dev/null)
+
+  if [ "$recent_header_printed" -eq 0 ]; then
+    echo "Recent Sessions | size=12 color=#999999"
+    recent_header_printed=1
+  fi
+
+  label="$proj_dir"
+  [ -n "$custom_title" ] && label="$proj_dir ($custom_title)"
+  [ -n "$agent_name" ] && label="$proj_dir ($agent_name)"
+
+  echo "${label}  ${mod_time} | color=#6b7280 font=Menlo size=12"
+  [ -n "$last_prompt" ] && echo "-- ${last_prompt} | color=#666666 size=11"
+done < <(find "$PROJECTS_DIR" -name "*.jsonl" -mtime -1 2>/dev/null)
 
 echo "---"
 echo "Refresh | refresh=true"
