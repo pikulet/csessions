@@ -1,6 +1,6 @@
 # csessions
 
-xbar plugin to monitor active [Claude Code](https://claude.ai/claude-code) sessions from the macOS menu bar.
+xbar plugin to monitor active Claude Code sessions from the macOS menu bar.
 
 ![demo](demo.png)
 
@@ -15,4 +15,4 @@ xbar plugin to monitor active [Claude Code](https://claude.ai/claude-code) sessi
 
 - macOS
 - Python 3
-- [Claude Code](https://claude.ai/claude-code)
+- Claude Code
